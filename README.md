@@ -5,8 +5,13 @@
 ```
 
 ```
+echo "use-agent 
+pinentry-mode loopback" > ~/.gnupg/gpg.conf
+echo "allow-loopback-pinentry" > ~/.gnupg/gpg-agent.conf
+echo RELOADAGENT | gpg-connect-agent
+
 gpg --full-generate-key
-# Password: testing1234
+# Password: test1234
 
 gpg --list-secret-keys --keyid-format=long
 # gpg: checking the trustdb
@@ -20,10 +25,20 @@ gpg --list-secret-keys --keyid-format=long
 # ssb   rsa4096/A733CB119010B966 2021-07-10 [E]
 
 cd /tmp
-gpg --armor --export 0C579BD96E991F8F > .pubkeys/pkey_signer1
+gpg --armor --export 0C579BD96E991F8F > .pubkeys/signer1.gpg.pub
 # public key
 
 git config --global user.email "signer.one@xhostervice.xyz"
 git config --global user.name "Signer One"
 git config --global user.signingkey 0C579BD96E991F8F
+
+git commit -S -m "signer1: signed commit"
+```
+
+```
+mkdir .ephemeral_gnupg
+GNUPGHOME=/media/sf_trusted-commit-signatures/.ephemeral_gnupg/ gpg --import .pubkeys/signer1.gpg.pub
+GNUPGHOME=/media/sf_trusted-commit-signatures/.ephemeral_gnupg/ git log --oneline --show-signature
+GNUPGHOME=/media/sf_trusted-commit-signatures/.ephemeral_gnupg/ git verify-commit dd4cae5
+
 ```

@@ -1,0 +1,19 @@
+name: "Verify Commits"
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  verify-trust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Verify Trust of commits
+        run: ./verify_commits.sh

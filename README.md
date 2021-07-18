@@ -2,6 +2,8 @@
 
 Validate Integrity and Provenance of Git Commits by Trust Pinning Commit Signatures to Public Keys maintained within the Repository.
 
+The `trusted-commit-signatures` project explains and demonstrates how to maintain public keys of *trusted contributors* within the code respository and validate contributions against those trust roots by stepwise verifying each commit signature against the public keys present in the previous commit. 
+
 ## Table of contents
 
 - [Intro](#intro): [Idea](#the-idea), [Problem](#the-problem), [Solution](#the-solution)
@@ -72,9 +74,10 @@ However, this statement that an external source of trust is required to make com
 
 > "Unless you store and distribute your public keys using some other system (in a separate trust domain from GitHub), you don’t really gain any protections from having your account compromised here."
 
-Inspired by DNSSEC as opposed to delegating trust to an external party, it is possible to pin the trust to public keys that are directly maintained within the GitHub repository itself.
+Similar to DNSSEC avoiding to delegate trust to an external party, it is possible to pin the trust to public keys that are directly maintained within the GitHub repository itself.
 By adding your public key to the repository say the `.pubkeys` folder with the initial commit, all subsequent commits can be verified against that public key.
 A *trusted contributor* is then a contributor with a private key to a public key within the `.pubkeys` folder.
+A *trusted commit* is then a commit with a signature corresponding to *trusted contributor*.
 
 If we go one step further and verify each commit signature against the public keys within the previous commit, we can also add and revoke public keys for new or former contributors by having a trusted contributor add or remove the corresponding public key to/from the `.pubkeys` folder:
 
@@ -85,7 +88,7 @@ If we go one step further and verify each commit signature against the public ke
 C0 ---> C1 ---> C2 ---> C3...
 ```
 
-Using trusted commits can protect against contributor account compromise or a malicious code plattform provider.
+By stepwise validating each commit from the `Initial commit` to the latest, using trusted commits can protect against contributor account compromise or a malicious code repository provider.
 
 ## Usage
 
@@ -103,37 +106,34 @@ There is 3 ways to run `verify_commits.sh`:
 - Build and run it as a docker container: `./docker/build_and_run.sh`
 - Run the pre-built container: `docker run -v $(git rev-parse --show-toplevel):/tmp docker.io/xoph/commit-verifier`
 
-The output should looks similar to:
+The output should look similar to:
 
 ```bash
-INFO: Temporary gnupg home '.ephemeral_gnupg' created.
+INFO: Temporary gnupg home '.gpg' created.
 Current Branch: main
-Number of commits to verify: 4
-Commits: 1e915b5fc5397eaebacff455eca0d3eda7961e71 b1ac78388be4eba7852262704ac430ddcd70dc16 9d9eaf00c505238ead719a49900bfc23ad046971 92d9c78b6d5ca0945ad6576a6e1cd36995313b2d
+Number of commits to verify: 3
+Commits: 1ed772c057e81a547d1c770c7e63100251036fd0 97dd197a48b3e45bb1c87165a1f5daf3c67c0407 05d0c20738935421c1315024a31e4ffd88e38b21
 
-3 92d9c78b6d5ca0945ad6576a6e1cd36995313b2d
-STATUS 0: Verifying commit 9d9eaf00c505238ead719a49900bfc23ad046971: 'feat: add github action.
-INFO: git - HEAD is now at 92d9c78b6d5ca0945ad6576a6e1cd36995313b2d.
-INFO: Temporary gnupg home '/home/xoph/code/trusted-commit-signatures/.gpg/3' created.
-STATUS 0: SUCCESSFUL VAlIDATION of 9d9eaf00c505238ead719a49900bfc23ad046971.
+0. STATUS: - Trust base commit 05d0c20738935421c1315024a31e4ffd88e38b21: 'Initial commit'
+           - Verifying commit 97dd197a48b3e45bb1c87165a1f5daf3c67c0407: 'feat: add github action.'
+INFO: git - HEAD is now at 05d0c20738935421c1315024a31e4ffd88e38b21.
+INFO: Temporary gnupg home '/tmp/.gpg/8' created.
+0. STATUS: SUCCESSFUL VAlIDATION of 97dd197a48b3e45bb1c87165a1f5daf3c67c0407.
 
-2 9d9eaf00c505238ead719a49900bfc23ad046971
-STATUS 1: Verifying commit b1ac78388be4eba7852262704ac430ddcd70dc16: 'xoph: signed commit.
-INFO: git - HEAD is now at 9d9eaf00c505238ead719a49900bfc23ad046971.
-INFO: Temporary gnupg home '/home/xoph/code/trusted-commit-signatures/.gpg/2' created.
-STATUS 1: SUCCESSFUL VAlIDATION of b1ac78388be4eba7852262704ac430ddcd70dc16.
-
-1 b1ac78388be4eba7852262704ac430ddcd70dc16
-STATUS 2: Verifying commit 1e915b5fc5397eaebacff455eca0d3eda7961e71: 'update readme.
-INFO: git - HEAD is now at b1ac78388be4eba7852262704ac430ddcd70dc16.
-INFO: Temporary gnupg home '/home/xoph/code/trusted-commit-signatures/.gpg/1' created.
-STATUS 2: SUCCESSFUL VAlIDATION of 1e915b5fc5397eaebacff455eca0d3eda7961e71.
+1. STATUS: - Trust base commit 97dd197a48b3e45bb1c87165a1f5daf3c67c0407: 'feat: add github action.'
+           - Verifying commit 1ed772c057e81a547d1c770c7e63100251036fd0: 'xoph: signed commit.'
+INFO: git - HEAD is now at 97dd197a48b3e45bb1c87165a1f5daf3c67c0407.
+INFO: Temporary gnupg home '/tmp/.gpg/7' created.
+1. STATUS: SUCCESSFUL VAlIDATION of 1ed772c057e81a547d1c770c7e63100251036fd0.
 
 ### RESULTS ###
 Trust all the commits!?
 ```
 
-The script fails in case you now make a change and create a commit without signature or with your own key and then run `verify_commits.sh` again.
+The script starts at the `Initial commit`, imports the public keys in the `.pubkeys` folder, validates the signature of the following commit against these keys and repeats the same with the next commit up to the latest.
+The script fails in case there is any unsigned commits or signed commits that cannot be validated against a public key in the previous commit.
+You could for example just make a change, create a commit that is either not signed at all or signed with your own key that is not maintained in the repository and `verify_commits.sh` would fail.
+There is also an example branch for *untrusted commits* provided below.
 
 This repository also contains a GitHub action that checks all PRs for trusted commits.
 While this can for example also check all incoming PRs or validate the repository frequently, there seems no way to protect an action from just being removed by the next commit.
@@ -191,6 +191,8 @@ ERROR: 2 untrusted commits.
 9ddce6a924a113f1fbcffd736483993683f17514: 'signer1: unsigned commit
 790253d815ff60c57620cda94014e02e32531138: 'signer1: signed commit BEFORE key is added.
 ```
+
+The script successfully validates the signed commits on the `main` branch (the first two), but then fails at the last two of which the first is unsigned and the second signed with an untrusted key.
 
 ### Adding and removing another public key
 
@@ -251,6 +253,11 @@ Your branch is up to date with 'origin/add-remove-pubkeys'.
 ERROR: 1 untrusted commits.
 013d8c0ff0a882f3bf7852bad2a2432aacbf52d9: 'signer1: signed commit AFTER key is removed.
 ```
+
+The script successfully validates the signed commits on the `main` branch (the first two).
+In the [thrid commit](https://github.com/xopham/trusted-commit-signatures/commit/fed793b74f07ded5215134b7496a9ca46d3bfdc5) a *trusted contributor* (`xoph`) adds the public key for `signer1` which passes validation.
+The [fourth commit](https://github.com/xopham/trusted-commit-signatures/commit/3c877ca1e970604f05e98ffbb0ee78f03fb1e4e6) corresponds to a change made by `signer1` and is verfied successfully against the previously added `signer1` key.
+Next, the *trusted contributor* revokes the public key of `signer1` in the [fifth commit](https://github.com/xopham/trusted-commit-signatures/commit/f144a153eabb537d8c5c399eb3352a7e04ad165d) and consequently the [next change](https://github.com/xopham/trusted-commit-signatures/commit/013d8c0ff0a882f3bf7852bad2a2432aacbf52d9) by `signer1` fails validation.
 
 ## Security considerations
 

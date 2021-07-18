@@ -268,3 +268,10 @@ ERROR: 1 untrusted commits.
     - Code repository providers (e.g. GitHub) could build a verification enforcement for protected branches based on the self-contained trusted-commit signature scheme.
     - The provided GitHub action in this repository allows verification and passing check could be enforced for a protected branch.
 
+## Potential development next steps
+
+1. Implement trust pinning for initial commit to a provided public key, e.g. via `commit-verifier` container.
+2. Implement trusted-commit-signatures as git hook to automatically validate upon cloning or pull.
+3. Locally maintain verified history to avoid re-evaluating all commits each time.
+4. Visualize history of public keys.
+5. Inform on changes to `.pubkeys` folder.

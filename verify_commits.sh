@@ -27,7 +27,6 @@ printf "\n"
 for NUM in "${!COMMITS[@]}";
 do
     IDX=$(($NO_COMMITS-$NUM-1))
-    echo $IDX ${COMMITS[$IDX]};
     if [ $IDX -eq 0 ];
     then
         # cleanup
@@ -44,12 +43,12 @@ do
             echo -e "${GREEN}Trust all the commits!?${NC}"
         fi
     else
-        echo -e "${YELLOW}STATUS $NUM: Verifying commit ${COMMITS[$(($IDX-1))]}: '$(git log --format=%B -n 1 ${COMMITS[$(($IDX-1))]}).${NC}'"  #might want to show commit message
+        printf "${YELLOW}${NUM}. STATUS: - Trust base commit ${COMMITS[$IDX]}: '$(git log --format=%B -n 1 ${COMMITS[$IDX]}).'\n           - Verifying commit ${COMMITS[$(($IDX-1))]}: '$(git log --format=%B -n 1 ${COMMITS[$(($IDX-1))]}).${NC}'\n"
         # slow down
         sleep 0.001
 
         # checkout the commit for verification
-        git checkout ${COMMITS[$IDX]} --quiet && echo -e "INFO: git - HEAD is now at ${COMMITS[$IDX]}."
+        git checkout ${COMMITS[$IDX]} --quiet && echo -e "INFO: git - HEAD is now at ${COMMITS[$IDX]}." || (echo -e "${RED}ERROR: Checking out commit ${COMMITS[$IDX]} failed.${NC}" && exit 1)
 
         # create commit gnupg home folder
         GHC=$GH/$IDX
@@ -63,11 +62,11 @@ do
         GNUPGHOME=$GHC git verify-commit ${COMMITS[$(($IDX-1))]} && EXIT_CODE=0 || EXIT_CODE=1
         if  [ ${EXIT_CODE} -eq 0 ];
         then
-            echo -e "${GREEN}STATUS ${NUM}: SUCCESSFUL VAlIDATION of ${COMMITS[$(($IDX-1))]}.${NC}"
+            echo -e "${GREEN}${NUM}. STATUS: SUCCESSFUL VAlIDATION of ${COMMITS[$(($IDX-1))]}.${NC}"
         else
             NO_UNTRUSTED_COMMITS=$((${NO_UNTRUSTED_COMMITS}+1))
             UNTRUSTED_COMMITS+=( "${COMMITS[$(($IDX-1))]}: '$(git log --format=%B -n 1 ${COMMITS[$(($IDX-1))]})" )
-            echo -e "${RED}ERROR: VALIDATION FAILED for ${COMMITS[$(($IDX-1))]}.${NC}"
+            echo -e "${RED}${NUM}. ERROR: VALIDATION FAILED for ${COMMITS[$(($IDX-1))]}.${NC}"
         fi
 
         printf "\n"

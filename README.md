@@ -237,11 +237,34 @@ INFO: Temporary gnupg home '/tmp/.gpg/1' created.
 ERROR: VALIDATION FAILED for 013d8c0ff0a882f3bf7852bad2a2432aacbf52d9.
 
 0 013d8c0ff0a882f3bf7852bad2a2432aacbf52d9
-Your branch is ahead of 'origin/trusted-commits' by 3 commits.
-  (use "git push" to publish your local commits)
+Your branch is up to date with 'origin/add-remove-pubkeys'.
 
 ### RESULTS ###
 ERROR: 1 untrusted commits.
 013d8c0ff0a882f3bf7852bad2a2432aacbf52d9: 'signer1: signed commit AFTER key is removed.
 ```
+
+## Security considerations
+
+- **Initial commit tampering**: The `Initial commit` does not exhibit a prior commit as trust root and can thus not be verified. An attacker can just inject their own key into the initial commit. A few mitigations for this threat exist:
+    - The attack only works without creating noise when the repository is cloned for the first time, soft of trust on first use (TOFU). Rewriting history will create a conflict for each user that cloned the repository prior to tampering. In most practical cases the `main` branch is a protected branch and will maintain a linear history.
+    - The initial commit could be rigidly pinned to the creator's public key that could for example be configured into the `commit-verifier` container image and shared separately.
+    - The code repository provider (e.g. GitHub) could for example template new projects with the public key of the provider and disallow modifying the initial commit (though that is incompatible with `git`).
+- **`verify_commits.sh` tampering**: When the actual verification code (e.g. `verify_commit.sh`) is maintained within the same repository, an attacker could modify the script to for example ignore their malicious commits. This can be mitigated by:
+    - Sharing the verification code on a separate system, e.g. as an OS package or as part of git itself.
+    - Provisioning a dedicated container image that is to be used for code verification (could also contain the public key for the initial commit).
+- **Key revocation complexity**: If a user key is compromised, revocation would require removing the corresponding public key from all repositories which is impractical and slow. Solutions might be:
+    - The code repository provider could inform maintainers of key changes within contributor accounts and provide key removal commit templates.
+- **Contributors must be trusted**: Essentially, each contributor can add keys for any number of other potential contributors. However:
+    - There still is the standard access management and a user authorization is required to push commits.
+    - The verification script could warn whenever keys are added or removed from the repository.
+    - Editing `.pubkeys` folder could be restricted to maintainers or owners.
+- **Malicious contributor removes all keys**: Essentially, a contributor can manage all other keys as well and could for example remove all public keys except their own and lock all others out. Mitigations might be:
+    - The initial public key could be made an eternal public key that cannot be removed, i.e. `verify_commits.sh` considers that key valid independent of whether it is still in the `.pubkeys` folder.
+    - In most cases, PRs and approvals should mitigate this.
+    - Editing `.pubkeys` folder could be restricted to maintainers or owners.
+- **Lack of platform validation**: As the commits have to be verified locally, it could happen that untrusted commits are added to a protected branch by accident which would break the trust history.
+    - One could allow adding a list of excluded commits that can be edited after the fact and only be appended, but requires a valid signature from a prior signed commit.
+    - Code repository providers (e.g. GitHub) could build a verification enforcement for protected branches based on the self-contained trusted-commit signature scheme.
+    - The provided GitHub action in this repository allows verification and passing check could be enforced for a protected branch.
 

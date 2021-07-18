@@ -2,6 +2,14 @@
 
 Validate Integrity and Provenance of Git Commits by Trust Pinning Commit Signatures to Public Keys maintained within the Repository.
 
+## Table of contents
+
+- [Intro](#intro): [Idea](#the-idea), [Problem](#the-problem), [Solution](#the-solution)
+- [Usage](#usage)
+- [Examples](#examples): [Untrusted Commits](#untrusted-commits), [Adding/Removing Public Keys](#adding-and-removing-another-public-key)
+- [Security Considerations](#security-considerations)
+- [Next Steps](#potential-development-next-steps)
+
 ## Intro
 
 Let's briefly review some basics and thoughts on commit signing...
@@ -79,7 +87,7 @@ C0 ---> C1 ---> C2 ---> C3...
 
 Using trusted commits can protect against contributor account compromise or a malicious code plattform provider.
 
-## Howto
+## Usage
 
 To test trusted commits, you can clone this repository:
 
@@ -275,3 +283,4 @@ ERROR: 1 untrusted commits.
 3. Locally maintain verified history to avoid re-evaluating all commits each time.
 4. Visualize history of public keys.
 5. Inform on changes to `.pubkeys` folder.
+

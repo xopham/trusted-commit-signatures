@@ -104,7 +104,7 @@ There is 3 ways to run `verify_commits.sh`:
 - directly run it on your machine: `./verify_commits.sh`
 > :warning: Please be a bit careful as the code is not extensively tested :wink:
 - Build and run it as a docker container: `./docker/build_and_run.sh`
-- Run the pre-built container: `docker run -v $(git rev-parse --show-toplevel):/tmp docker.io/xoph/commit-verifier`
+- Run the pre-built container: `docker run -v $(git rev-parse --show-toplevel):/tmp/repo docker.io/xoph/commit-verifier`
 
 The output should look similar to:
 
